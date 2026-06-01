@@ -519,11 +519,21 @@ class GPSMonitor:
                                     # Store full 6-char grid for GPS Logger
                                     self.grid_6char = full_grid
                                     
-                                    # Only callback if grid changed (at configured precision)
+                                    # Log when grid changes
                                     if grid != self.current_grid:
                                         self.current_grid = grid
                                         print(f"GPS: Position update - {grid} ({lat:.6f}, {lon:.6f})")
-                                        self.callback(grid, lat, lon)
+
+                                    # !!! DO NOT REVERT !!!
+                                    # The callback MUST fire on every GPS fix, not only on grid changes.
+                                    # County boundaries do not line up with grid boundaries, so county
+                                    # detection in on_gps_update -> _check_county_change must run
+                                    # continuously. If you put `self.callback(...)` back inside the
+                                    # `if grid != self.current_grid:` block, the user's county will
+                                    # only update when crossing a 4-char grid line — which is broken
+                                    # for QSO Party rovers. This has been reverted multiple times.
+                                    # See: memory/feedback_gps_callback.md
+                                    self.callback(grid, lat, lon)
                                 else:
                                     if had_fix:
                                         # Lost fix
